@@ -150,7 +150,7 @@
 
             try {
                 // Using the exact endpoint structure provided
-                const apiUrl = `https://www.piratereads.com/${USER_ID}/${endpoint}`;
+                const apiUrl = `https://api.piratereads.com/${USER_ID}/${endpoint}`;
                 
                 const response = await fetch(apiUrl, { method: "GET" });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
