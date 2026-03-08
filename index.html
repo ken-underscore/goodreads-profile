@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emily May's Reading List</title>
+    <style>
+        :root {
+            --bg-color: #fcfcfc;
+            --text-main: #1a1a1a;
+            --text-muted: #666;
+            --accent: #000;
+            --border: #e0e0e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 60px 20px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 2rem;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .tab {
+            background: none;
+            border: none;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: color 0.2s ease;
+        }
+
+        .tab:hover {
+            color: var(--accent);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent);
+            margin-bottom: -14px;
+        }
+
+        #books-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 40px 24px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .book-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: opacity 0.2s ease;
+        }
+
+        .book-link:hover {
+            opacity: 0.7;
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            border-radius: 6px;
+            background-color: var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .book-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .book-author {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .status-message {
+            text-align: center;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+            padding: 40px;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Emily May's Books</h1>
+    </header>
+
+    <div class="tabs">
+        <button class="tab active" data-endpoint="currently-reading">Currently Reading</button>
+        <button class="tab" data-endpoint="read">Read</button>
+        <button class="tab" data-endpoint="want-to-read">Want to Read</button>
+    </div>
+
+    <div id="books-container">
+        </div>
+
+    <script>
+        const USER_ID = '4622890';
+        const container = document.getElementById('books-container');
+        const tabs = document.querySelectorAll('.tab');
+
+        async function fetchBooks(endpoint) {
+            container.innerHTML = '<div class="status-message">Loading books...</div>';
+
+            try {
+                // Using the exact endpoint structure provided
+                const apiUrl = `https://www.piratereads.com/${USER_ID}/${endpoint}`;
+                
+                const response = await fetch(apiUrl, { method: "GET" });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                
+                // Extracting the "books" array from the JSON schema
+                const books = data.books || [];
+                
+                renderBooks(books);
+            } catch (error) {
+                console.error('Error fetching books:', error);
+                container.innerHTML = `<div class="status-message error">Could not load books for this view.</div>`;
+            }
+        }
+
+        function renderBooks(books) {
+            if (books.length === 0) {
+                container.innerHTML = '<div class="status-message">No books found in this list.</div>';
+                return;
+            }
+
+            container.innerHTML = books.map(book => {
+                // Using the exact keys from the provided JSON schema
+                const title = book.book_title || 'Unknown Title';
+                const author = book.book_author || 'Unknown Author';
+                // Falling back to small if medium isn't available, or a placeholder
+                const cover = book.book_cover_medium || book.book_cover_small || 'https://via.placeholder.com/180x270?text=No+Cover';
+                const link = book.book_link || '#';
+                
+                return `
+                    <a href="${link}" target="_blank" rel="noopener noreferrer" class="book-link">
+                        <img class="book-cover" src="${cover}" alt="Cover of ${title}" loading="lazy">
+                        <div>
+                            <h3 class="book-title">${title}</h3>
+                            <p class="book-author">${author}</p>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // Attach click listeners to the view switchers
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                // Update styling to reflect the active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+
+                // Fetch data for the newly selected endpoint
+                const endpoint = e.target.getAttribute('data-endpoint');
+                fetchBooks(endpoint);
+            });
+        });
+
+        // Load the initial view
+        fetchBooks('currently-reading');
+    </script>
+</body>
+</html>
